@@ -10,10 +10,14 @@ import javafx.geometry.Pos;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseButton;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -22,9 +26,9 @@ import javafx.stage.Stage;
 import javafx.util.Duration;
 
 import javafx.event.ActionEvent;
+
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 public class Minesweeper extends Application {
 
@@ -41,21 +45,23 @@ public class Minesweeper extends Application {
     private int numOpened;
     private int numMines;
     private int minesLeft = 0;
+    Pane root;
+    Timeline fiveSecondsWonder;
 
     Scene scene;
     private Label mineCount;
     private short time;
 
     private Parent createContent() {
-        Pane root = new Pane();
         time = 0;
+        root = new Pane();
 
         Label timer = new Label();
         timer.setText("Time: " + time);
         timer.setFont(Font.font(25));
         timer.setTranslateX(250);
 
-        Timeline fiveSecondsWonder = new Timeline(new KeyFrame(Duration.seconds(1), new EventHandler<ActionEvent>() {
+        fiveSecondsWonder = new Timeline(new KeyFrame(Duration.seconds(1), new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent event) {
                 time++;
@@ -71,7 +77,7 @@ public class Minesweeper extends Application {
         root.setPrefSize(WIDTH, HEIGHT);
         for(int x = 0; x < X; x++) {
             for(int y = 0; y < Y; y++) {
-                Tile tile = new Tile(x, y, Math.random() < 0.05);
+                Tile tile = new Tile(x, y, Math.random() < 0.1);
                 board[x][y] = tile;
                 if(tile.hasMine) {
                     numMines++;
@@ -139,11 +145,16 @@ public class Minesweeper extends Application {
         private Rectangle border;
         private Text text;
         private boolean isFlagged;
+        ImagePattern flag;
+        ImagePattern mine;
 
         public Tile(int x, int y, boolean hasMine) {
             this.x = x;
             this.y = y;
             this.hasMine = hasMine;
+
+            flag = new ImagePattern(new Image("file:flag.png"));
+            mine = new ImagePattern(new Image("file:mine.png"));
             isOpened = false;
             isFlagged = false;
 
@@ -165,6 +176,7 @@ public class Minesweeper extends Application {
                     checkPlayability();
                     if(!playable) {
                         AlertBox.display("Minesweeper", "You Win!");
+                        fiveSecondsWonder.pause();
                         scene.setRoot(createContent());
                         return;
                     }
@@ -173,7 +185,12 @@ public class Minesweeper extends Application {
                     if(isOpened) {
                         return;
                     }
-                    border.setFill(isFlagged ? Color.LIGHTGRAY : Color.RED);
+                    if(!isFlagged) {
+                        border.setFill(flag);
+                    }
+                    else {
+                        border.setFill(Color.LIGHTGRAY);
+                    }
                     isFlagged = !isFlagged;
                     minesLeft =  isFlagged ? --minesLeft : ++minesLeft;
                     mineCount.setText("Mines: " + minesLeft);
@@ -208,13 +225,15 @@ public class Minesweeper extends Application {
                 for(int x = 0; x < X; x++) {
                     for(int y = 0; y < Y; y++) {
                         if(board[x][y].hasMine) {
-                            board[x][y].border.setFill(null);
-                            board[x][y].text.setVisible(true);
+                            board[x][y].border.setFill(mine);
+                            board[x][y].text.setVisible(false);
                         }
                     }
                 }
                 AlertBox.display("Minesweeper", "Game Over");
+                fiveSecondsWonder.pause();
                 scene.setRoot(createContent());
+                //restart();
                 return;
             }
             numOpened++;
@@ -230,6 +249,8 @@ public class Minesweeper extends Application {
         }
     }
 
+
+
     @Override
     public void start(Stage primaryStage) throws Exception{
         primaryStage.setTitle("Minesweeper");
@@ -237,8 +258,6 @@ public class Minesweeper extends Application {
         primaryStage.setScene(scene);
         primaryStage.show();
     }
-
-
 
     public static void main(String[] args) {
         launch(args);
